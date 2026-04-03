@@ -57,8 +57,8 @@ with st.sidebar:
             st.session_state["page"] = "AI_Chat"
             st.rerun()
 
-        if st.session_state["user"]["role"] == "admin":
-            if st.button("admin"):
+        if st.session_state["user"]["role"] == "admin".lower():
+            if st.button("Admin Features"):
                 st.session_state["page"] = "admin"
                 st.rerun()
 
@@ -70,6 +70,7 @@ with st.sidebar:
 ##Logging in 
 if st.session_state["page"] == "login":
     st.title("Welcome to AI Expense Tracker")
+
     st.subheader("Login")
     with st.container(border=True):
         email = st.text_input("Email", key = "email")
@@ -81,7 +82,7 @@ if st.session_state["page"] == "login":
 
             found_user = None
             for user in users:
-                if user["email"].strip().lower() == email.strip().lower() and user["password"] == password:
+                if user["email"].lower() == email.lower() and user["password"] == password:
                     found_user = user
                     break
 
@@ -101,7 +102,7 @@ if st.session_state["page"] == "login":
         new_name = st.text_input("Full Name", key= "full_name")
         new_email = st.text_input("Email", key= "email_register")
         new_password = st.text_input("Password", type="password", key= "password_creation")
-        new_role = st.radio("Role", options=["Admin", "User"], key = "role_select", horizontal=True)
+        new_role = st.radio("Role", options=["admin", "user"], key = "role_select", horizontal=True)
 
         if st.button("Create Account", key= "register_btn"):
             with st.spinner("Creating account..."):
@@ -110,7 +111,7 @@ if st.session_state["page"] == "login":
                     "full_name": new_name,
                     "email": new_email,
                     "password": new_password,
-                    "role": new_role
+                    "role": new_role.lower()
                 })
                 
                 with open(json_path_users, "w") as f:
@@ -192,13 +193,18 @@ elif st.session_state["page"] == "dashboard":
 
             st.write(f"Highest Expense: ${highest['amount']:.2f} {highest['category']}")
             st.write(f"Lowest Expense: ${lowest['amount']:.2f} {lowest['category']}")
+
+            st.divider()
         ##Also test this once I add the adding expenses function
 
     ##All Expenses
 
-    with st.container(border=True):
-            st.subheader("All Expenses")
-            st.dataframe(user_expenses)
+    for e in user_expenses:
+        with st.container(border=True):
+            col1, col2, col3 = st.columns(3)
+            col1.write(f"Category: {e['category']}")
+            col2.write(f"Amount: ${e['amount']:.2f}")
+            col3.write(f"Note: {e['note']}")
 
 ##Adding expenses page
 elif st.session_state["page"] == "add_expense":
@@ -212,17 +218,19 @@ elif st.session_state["page"] == "add_expense":
         if amount <= 0:
             st.error("Amount must be greater than 0")
         else:
-            expenses.append({
-                "id": str(uuid.uuid4())[:6],
-                "email": st.session_state["user"]["email"],
-                "amount": amount,
-                "category": category,
-                "note": note,})
-            with open(json_path_expenses, "w") as f:
-                json.dump(expenses, f)
-            st.spinner("Adding expense...")
-            time.sleep(2)
+            with st.spinner("Adding expense..."):
 
+                expenses.append({
+                    "id": str(uuid.uuid4())[:6],
+                    "email": st.session_state["user"]["email"],
+                    "amount": amount,
+                    "category": category,
+                    "note": note,})
+                
+                with open(json_path_expenses, "w") as f:
+                    json.dump(expenses, f)
+
+            time.sleep(2)
             st.success("Expense added!")
             st.rerun()
             ##Adding expenses page need to add a loading adding expense spinner
@@ -263,18 +271,39 @@ elif st.session_state["page"] == "AI_Chat":
             st.warning("Try a supported question")
 
 ##Admin Page
-elif st.session_state["page"] == "admin":
+elif st.session_state["page"] == "admin".lower():
+    if st.session_state["user"]["role"].lower() != "admin".lower():
+        st.error("This is only accessible to admins")
+        st.stop()
+
     st.title("Admin Dashboard")
 
     user_emails = [u["email"] for u in users]
     selected_user = st.selectbox("Select User", user_emails)
+
     if selected_user:
         user_expenses = [e for e in expenses if e["email"] == selected_user]
 
         st.subheader(f"{selected_user}'s Expenses")
-        st.dataframe(user_expenses)
-    else:
-        st.warning("No expenses for selected user")
+        for e in user_expenses:
+            with st.container(border=True):
+                col1, col2, col3, col4 = st.columns(4)
+                col1.write(f"Amount: ${e['amount']:.2f}")
+                col2.write(f"Category: {e['category']}")
+                col3.write(f"Note: {e['note']}")
+
+                if col4.button("Delete", key=f"delete_{e['id']}"):
+                    expenses.remove(e)
+                    with open(json_path_expenses, "w") as f:
+                        json.dump(expenses, f)
+                    st.success("Expense deleted")
+                    st.rerun()
+
+                if col4.button("Edit", key=f"edit_{e['id']}"):
+                    st.session_state["edit_expense"] = e
+                    st.session_state["page"] = "edit_expense"
+                    st.rerun()
+
 
 
 

@@ -1,1 +1,1 @@
-[{"email": "seescott@udel.edu", "password": "1", "role": "Admin"}, {"full_name": "jane doe", "email": "jane@gmail.com", "password": "12", "role": "Admin"}]
+[{"email": "seescott@udel.edu", "password": "1", "role": "admin"}, {"full_name": "jane doe", "email": "jane@gmail.com", "password": "12", "role": "admin"}, {"full_name": "james", "email": "james@udel.edu", "password": "2", "role": "user"}, {"full_name": "jane do", "email": "do@gmail.com", "password": "5", "role": "user"}]
