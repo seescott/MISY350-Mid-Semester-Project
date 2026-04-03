@@ -53,7 +53,7 @@ with st.sidebar:
             st.rerun()
         
         if st.button("AI Chat", key = "ai_chat"):
-            st.session_state["page"] = "ai_chat"
+            st.session_state["page"] = "AI_Chat"
             st.rerun()
 
         if st.session_state["user"]["role"] == "admin":
@@ -217,11 +217,45 @@ elif st.session_state["page"] == "add_expense":
                 json.dump(expenses, f)
             st.spinner("Adding expense...")
             time.sleep(2)
-            
+
             st.success("Expense added!")
             st.rerun()
             ##Adding expenses page need to add a loading adding expense spinner
-          
+
+##AI Chat Page
+elif st.session_state["page"] == "AI_Chat":
+    st.title("AI Assistant")
+
+    user_input = st.text_input("Ask a question")
+    if st.button("Ask"):
+        user_email = st.session_state["user"]["email"]
+        user_expenses = [e for e in expenses if e["email"] == user_email]
+
+        if user_input =="How much did I spend this month?":
+            total = sum(e["amount"] for e in user_expenses)
+            st.success(f"You spent ${total:.2f} this month!")
+
+        elif user_input == "List my expenses":
+            st.write(user_expenses)
+
+        elif user_input =="How many transactions did I make?":
+            count = len(user_expenses)
+            st.success(f"You made {count} transactions this month!")
+
+        elif user_input == "How many categories did I spend in?":
+            categories = []
+            for e in user_expenses:
+                if e["category"] not in categories:
+                    categories.append(e["category"])
+            st.success(f"You spent in {len(categories)} categories this month!")
+        elif user_input =="How much did I spend on food?":
+            food_total = 0
+            for e in user_expenses:
+                if e["category"] == "Food":
+                    food_total += e["amount"]
+            st.success(f"You spent ${food_total:.2f} on food this month!")
+        else:
+            st.error("Try a supported question")
 
 
 
