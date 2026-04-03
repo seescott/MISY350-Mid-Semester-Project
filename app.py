@@ -120,4 +120,35 @@ if st.session_state["page"] == "login":
 
     st.write("---")
     
-  
+elif st.session_state["page"] == "dashboard":
+    st.title("💵 Expense Dashboard 💵")
+
+    user_email = st.session_state["user"]["email"]
+    user_expenses = []
+    for e in expenses:
+        if e["email"] == user_email:
+            user_expenses.append(e)
+
+    if len(user_expenses) == 0:
+        st.info("No expenses found")
+        st.stop()
+##Calculations
+    total_spent = 0
+
+    for e in user_expenses:
+        total_spent +=["amount"]
+
+    total_transactions = len(user_expenses)
+
+    if total_transactions >0:
+        avg = total_spent / total_transactions
+    else:
+        avg = 0
+    
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("Total Spent", f"${total_spent:.2f}")
+    col2.metric("Total Transactions", total_transactions)
+    col3.metric("Average Transaction", f"${avg:.2f}")
+
+    st.divider()
