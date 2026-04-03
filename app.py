@@ -136,7 +136,7 @@ elif st.session_state["page"] == "dashboard":
     total_spent = 0
 
     for e in user_expenses:
-        total_spent +=["amount"]
+        total_spent += e["amount"]
 
     total_transactions = len(user_expenses)
 
@@ -162,34 +162,66 @@ elif st.session_state["page"] == "dashboard":
 
         if category in category_amounts:
             category_amounts[category] += amount  
-        category_amounts[category] = 0
+        else:
+            category_amounts[category] = amount
 
         col1, col2 = st.columns(2)
         
         ##Test this once I add the adding expenses function
 
-with col1:
-    st.subheader("Expenses by Category")
-    st.write(category_amounts)
-    st.bar_chart(category_amounts)
+    with col1:
+        st.subheader("Expenses by Category")
+        st.write(category_amounts)
+        st.bar_chart(category_amounts)
 
-##Highest and lowest expenses
-with col2:
-    st.subheader("Highest and Lowest Expenses")
-    
-    highest = user_expenses[0]
-    lowest = user_expenses[0]
+    ##Highest and lowest expenses
+    with col2:
+        st.subheader("Highest and Lowest Expenses")
+        
+        highest = user_expenses[0]
+        lowest = user_expenses[0]
 
-    for e in user_expenses:
-        if e["amount"] > highest["amount"]:
-            highest = e
-        if e["amount"] < lowest["amount"]:
-            lowest = e
+        for e in user_expenses:
+            if e["amount"] > highest["amount"]:
+                highest = e
+            if e["amount"] < lowest["amount"]:
+                lowest = e
 
-    st.write(f"Highest Expense: ${highest['amount']:.2f} {highest['category']}")
-    st.write(f"Lowest Expense: ${lowest['amount']:.2f} {lowest['category']}")
-    ##Also test this once I add the adding expenses function
+        st.write(f"Highest Expense: ${highest['amount']:.2f} {highest['category']}")
+        st.write(f"Lowest Expense: ${lowest['amount']:.2f} {lowest['category']}")
+        ##Also test this once I add the adding expenses function
 
-##All Expenses
-    st.subheader("All Expenses")
-    st.write(user_expenses)
+    ##All Expenses
+        st.subheader("All Expenses")
+        st.write(user_expenses)
+
+##Adding expenses page
+elif st.session_state["page"] == "add_expense":
+    st.title("Add New Expense")
+
+    amount = st.number_input("Amount", min_value = 0.01)
+    category = st.selectbox("Category", options = ["Food", "Transportation", "Bills", "Entertainment", "Other"])
+    note = st.text_area("Note (optional)")
+
+    if st.button("Add Expense", key = "add_expense_btn"):
+        if amount <= 0:
+            st.error("Amount must be greater than 0")
+        else:
+            expenses.append({
+                "id": str(uuid.uuid4()),
+                "email": st.session_state["user"]["email"],
+                "amount": amount,
+                "category": category,
+                "note": note,})
+            with open(json_path_expenses, "w") as f:
+                json.dump(expenses, f)
+            st.spinner("Adding expense...")
+            time.sleep(2)
+            
+            st.success("Expense added!")
+            st.rerun()
+            ##Adding expenses page need to add a loading adding expense spinner
+          
+
+
+
