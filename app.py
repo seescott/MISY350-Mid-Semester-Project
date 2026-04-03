@@ -163,5 +163,33 @@ elif st.session_state["page"] == "dashboard":
         if category in category_amounts:
             category_amounts[category] += amount  
         category_amounts[category] = 0
+
+        col1, col2 = st.columns(2)
         
         ##Test this once I add the adding expenses function
+
+with col1:
+    st.subheader("Expenses by Category")
+    st.write(category_amounts)
+    st.bar_chart(category_amounts)
+
+##Highest and lowest expenses
+with col2:
+    st.subheader("Highest and Lowest Expenses")
+    
+    highest = user_expenses[0]
+    lowest = user_expenses[0]
+
+    for e in user_expenses:
+        if e["amount"] > highest["amount"]:
+            highest = e
+        if e["amount"] < lowest["amount"]:
+            lowest = e
+
+    st.write(f"Highest Expense: ${highest['amount']:.2f} {highest['category']}")
+    st.write(f"Lowest Expense: ${lowest['amount']:.2f} {lowest['category']}")
+    ##Also test this once I add the adding expenses function
+
+##All Expenses
+    st.subheader("All Expenses")
+    st.write(user_expenses)
