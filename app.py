@@ -152,3 +152,16 @@ elif st.session_state["page"] == "dashboard":
     col3.metric("Average Transaction", f"${avg:.2f}")
 
     st.divider()
+
+##Expenses by Category
+    category_amounts = {}
+
+    for e in user_expenses:
+        category = e["category"]
+        amount = e["amount"]
+
+        if category in category_amounts:
+            category_amounts[category] += amount  
+        category_amounts[category] = 0
+        
+        ##Test this once I add the adding expenses function
