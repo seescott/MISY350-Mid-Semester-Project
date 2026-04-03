@@ -193,7 +193,7 @@ elif st.session_state["page"] == "dashboard":
 
     ##All Expenses
         st.subheader("All Expenses")
-        st.write(user_expenses)
+        st.dataframe(user_expenses)
 
 ##Adding expenses page
 elif st.session_state["page"] == "add_expense":
@@ -208,7 +208,7 @@ elif st.session_state["page"] == "add_expense":
             st.error("Amount must be greater than 0")
         else:
             expenses.append({
-                "id": str(uuid.uuid4()),
+                "id": str(uuid.uuid4())[:6],
                 "email": st.session_state["user"]["email"],
                 "amount": amount,
                 "category": category,
@@ -256,6 +256,21 @@ elif st.session_state["page"] == "AI_Chat":
             st.success(f"You spent ${food_total:.2f} on food this month!")
         else:
             st.error("Try a supported question")
+
+##Admin Page
+elif st.session_state["page"] == "admin":
+    st.title("Admin Dashboard")
+
+    user_emails = [u["email"] for u in users]
+    selected_user = st.selectbox("Select User", user_emails)
+    if selected_user:
+        user_expenses = [e for e in expenses if e["email"] == selected_user]
+
+        st.subheader(f"{selected_user}'s Expenses")
+        st.dataframe(user_expenses)
+    else:
+        st.info("No expenses for selected user")
+else:
 
 
 
