@@ -5,7 +5,7 @@ from datetime import datetime
 import uuid
 import time
 
-st.set_page_config("AI Expense Tracker", layout="wide", page_icon="", initial_sidebar_state="expanded") ## come back and add icon
+st.set_page_config("AI Expense Tracker", layout="wide", page_icon="💰", initial_sidebar_state="expanded") ## come back and add icon
 
 users_path = Path("users.json")
 expenses_path = Path("expenses.json")
@@ -39,6 +39,7 @@ if "page" not in st.session_state:
     
 if "user" not in st.session_state:
     st.session_state.user = None
+
 ##Sidebar panel
 with st.sidebar:
     if st.session_state["user"]:
@@ -170,30 +171,34 @@ elif st.session_state["page"] == "dashboard":
         ##Test this once I add the adding expenses function
 
     with col1:
-        st.subheader("Expenses by Category")
-        st.write(category_amounts)
-        st.bar_chart(category_amounts)
+      with st.container(border=True):
+            st.subheader("Expenses by Category")
+            st.dataframe(category_amounts)
+            st.bar_chart(category_amounts)
 
     ##Highest and lowest expenses
     with col2:
-        st.subheader("Highest and Lowest Expenses")
-        
-        highest = user_expenses[0]
-        lowest = user_expenses[0]
+         with st.container(border=True):
+            st.subheader("Highest and Lowest Expenses")
+            
+            highest = user_expenses[0]
+            lowest = user_expenses[0]
 
-        for e in user_expenses:
-            if e["amount"] > highest["amount"]:
-                highest = e
-            if e["amount"] < lowest["amount"]:
-                lowest = e
+            for e in user_expenses:
+                if e["amount"] > highest["amount"]:
+                    highest = e
+                if e["amount"] < lowest["amount"]:
+                    lowest = e
 
-        st.write(f"Highest Expense: ${highest['amount']:.2f} {highest['category']}")
-        st.write(f"Lowest Expense: ${lowest['amount']:.2f} {lowest['category']}")
+            st.write(f"Highest Expense: ${highest['amount']:.2f} {highest['category']}")
+            st.write(f"Lowest Expense: ${lowest['amount']:.2f} {lowest['category']}")
         ##Also test this once I add the adding expenses function
 
     ##All Expenses
-        st.subheader("All Expenses")
-        st.dataframe(user_expenses)
+
+    with st.container(border=True):
+            st.subheader("All Expenses")
+            st.dataframe(user_expenses)
 
 ##Adding expenses page
 elif st.session_state["page"] == "add_expense":
@@ -255,7 +260,7 @@ elif st.session_state["page"] == "AI_Chat":
                     food_total += e["amount"]
             st.success(f"You spent ${food_total:.2f} on food this month!")
         else:
-            st.error("Try a supported question")
+            st.warning("Try a supported question")
 
 ##Admin Page
 elif st.session_state["page"] == "admin":
@@ -269,8 +274,7 @@ elif st.session_state["page"] == "admin":
         st.subheader(f"{selected_user}'s Expenses")
         st.dataframe(user_expenses)
     else:
-        st.info("No expenses for selected user")
-else:
+        st.warning("No expenses for selected user")
 
 
 
