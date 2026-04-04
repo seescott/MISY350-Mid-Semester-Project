@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 import uuid
-import time
+
 
 st.set_page_config("AI Expense Tracker", layout="wide", page_icon="💰", initial_sidebar_state="expanded") ## come back and add icon
 
@@ -14,8 +14,11 @@ json_path_users = Path("users.json")
 json_path_expenses = Path("expenses.json")
 
 if users_path.exists():
-    with open(users_path, "r") as f:
-        users = json.load(f)
+    try: 
+        with open(users_path, "r") as f:
+            users = json.load(f)
+    except:
+        users = []
 else:
     users = [
         {
@@ -29,8 +32,11 @@ else:
         json.dump(users, f)
 
 if expenses_path.exists():
-    with open(expenses_path, "r") as f:
-        expenses = json.load(f)
+    try:
+        with open(expenses_path, "r") as f:
+            expenses = json.load(f)
+    except:
+        expenses = []
 else:
     expenses = []
 
@@ -57,7 +63,7 @@ with st.sidebar:
             st.session_state["page"] = "AI_Chat"
             st.rerun()
 
-        if st.session_state["user"]["role"] == "admin".lower():
+        if st.session_state["user"]["role"].lower() == "admin":
             if st.button("Admin Features"):
                 st.session_state["page"] = "admin"
                 st.rerun()
@@ -78,8 +84,6 @@ if st.session_state["page"] == "login":
     
     if st.button("Login",type="primary", key = "login_button"):
          with st.spinner("Logging in..."):
-            time.sleep(2)
-
             found_user = None
             for user in users:
                 if user["email"].lower() == email.lower() and user["password"] == password:
@@ -88,10 +92,8 @@ if st.session_state["page"] == "login":
 
             if found_user:
                 st.success(f"Welcome back, {found_user['email']}!")
-                st.session_state["logged_in"] = True
                 st.session_state["user"] = found_user
                 st.session_state["page"] = "dashboard"
-                time.sleep(2)
                 st.rerun()
             else:
                 st.error("Invalid credentials")
@@ -105,23 +107,36 @@ if st.session_state["page"] == "login":
         new_role = st.radio("Role", options=["admin", "user"], key = "role_select", horizontal=True)
 
         if st.button("Create Account", key= "register_btn"):
-            with st.spinner("Creating account..."):
-                time.sleep(2) 
-                users.append({
-                    "full_name": new_name,
-                    "email": new_email,
-                    "password": new_password,
-                    "role": new_role.lower()
-                })
-                
-                with open(json_path_users, "w") as f:
-                    json.dump(users,f)
+            if new_name=="" or new_email=="" or new_password=="":
+                st.error("Please fill in all fields")
+            elif any(u["email"].lower() == new_email.lower() for u in users):
+                st.error("Email already exists")
+            else:
+                with st.spinner("Creating account..."):
+                    time.sleep(2) 
+                    users.append({
+                        "full_name": new_name,
+                        "email": new_email,
+                        "password": new_password,
+                        "role": new_role.lower()
+                    })
+                    
+                    with open(json_path_users, "w") as f:
+                        json.dump(users,f)
 
                 st.success("Account created!")
                 st.rerun()
 
     st.write("---")
-    
+
+##Login guard reccomended by AI checker
+login_guard = ["dashboard", "add_expense", "AI_Chat", "admin", "edit_expense"]
+if st.session_state["page"] in login_guard and not st.session_state["user"]:
+        st.warning("Please log in first")
+        st.session_state["page"] = "login"
+        st.rerun()
+
+##Dashboard Page    
 elif st.session_state["page"] == "dashboard":
     st.title("💵 Expense Dashboard 💵")
 
@@ -133,78 +148,79 @@ elif st.session_state["page"] == "dashboard":
 
     if len(user_expenses) == 0:
         st.info("No expenses found")
-        st.stop()
-##Calculations
-    total_spent = 0
-
-    for e in user_expenses:
-        total_spent += e["amount"]
-
-    total_transactions = len(user_expenses)
-
-    if total_transactions >0:
-        avg = total_spent / total_transactions
     else:
-        avg = 0
-    
-    col1, col2, col3 = st.columns(3)
+        
+       
+##Calculations
+        total_spent = 0
 
-    col1.metric("Total Spent", f"${total_spent:.2f}")
-    col2.metric("Total Transactions", total_transactions)
-    col3.metric("Average Transaction", f"${avg:.2f}")
+        for e in user_expenses:
+            total_spent += e["amount"]
 
-    st.divider()
+        total_transactions = len(user_expenses)
+
+        if total_transactions >0:
+            avg = total_spent / total_transactions
+        else:
+            avg = 0
+        
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric("Total Spent", f"${total_spent:.2f}")
+        col2.metric("Total Transactions", total_transactions)
+        col3.metric("Average Transaction", f"${avg:.2f}")
+
+        st.divider()
 
 ##Expenses by Category
-    category_amounts = {}
+        category_amounts = {}
 
-    for e in user_expenses:
-        category = e["category"]
-        amount = e["amount"]
+        for e in user_expenses:
+            category = e["category"]
+            amount = e["amount"]
 
-        if category in category_amounts:
-            category_amounts[category] += amount  
-        else:
-            category_amounts[category] = amount
+            if category in category_amounts:
+                category_amounts[category] += amount  
+            else:
+                category_amounts[category] = amount
 
         col1, col2 = st.columns(2)
         
         ##Test this once I add the adding expenses function
 
-    with col1:
-      with st.container(border=True):
-            st.subheader("Expenses by Category")
-            st.dataframe(category_amounts)
-            st.bar_chart(category_amounts)
+        with col1:
+            with st.container(border=True):
+                st.subheader("Expenses by Category")
+                st.bar_chart(category_amounts)
 
     ##Highest and lowest expenses
-    with col2:
-         with st.container(border=True):
-            st.subheader("Highest and Lowest Expenses")
-            
-            highest = user_expenses[0]
-            lowest = user_expenses[0]
+        with col2:
+            with st.container(border=True):
+                st.subheader("Highest and Lowest Expenses")
+                
+                highest = user_expenses[0]
+                lowest = user_expenses[0]
 
-            for e in user_expenses:
-                if e["amount"] > highest["amount"]:
-                    highest = e
-                if e["amount"] < lowest["amount"]:
-                    lowest = e
+                for e in user_expenses:
+                    if e["amount"] > highest["amount"]:
+                        highest = e
+                    if e["amount"] < lowest["amount"]:
+                        lowest = e
 
-            st.write(f"Highest Expense: ${highest['amount']:.2f} {highest['category']}")
-            st.write(f"Lowest Expense: ${lowest['amount']:.2f} {lowest['category']}")
+                st.write(f"Highest Expense: ${highest['amount']:.2f} {highest['category']}")
+                st.write(f"Lowest Expense: ${lowest['amount']:.2f} {lowest['category']}")
 
-            st.divider()
+                st.divider()
         ##Also test this once I add the adding expenses function
 
     ##All Expenses
-
-    for e in user_expenses:
-        with st.container(border=True):
-            col1, col2, col3 = st.columns(3)
-            col1.write(f"Category: {e['category']}")
-            col2.write(f"Amount: ${e['amount']:.2f}")
-            col3.write(f"Note: {e['note']}")
+        st.subheader("All Expenses")
+        for e in user_expenses:
+            with st.container(border=True):
+                col1, col2, col3 = st.columns(3)
+                col1.write(f"Category: {e['category']}")
+                col2.write(f"Amount: ${e['amount']:.2f}")
+                col3.write(f"Note: {e['note']}")
 
 ##Adding expenses page
 elif st.session_state["page"] == "add_expense":
@@ -219,6 +235,7 @@ elif st.session_state["page"] == "add_expense":
             st.error("Amount must be greater than 0")
         else:
             with st.spinner("Adding expense..."):
+                time.sleep(2)
 
                 expenses.append({
                     "id": str(uuid.uuid4())[:6],
@@ -229,8 +246,6 @@ elif st.session_state["page"] == "add_expense":
                 
                 with open(json_path_expenses, "w") as f:
                     json.dump(expenses, f)
-
-            time.sleep(2)
             st.success("Expense added!")
             st.rerun()
             ##Adding expenses page need to add a loading adding expense spinner
@@ -249,7 +264,7 @@ elif st.session_state["page"] == "AI_Chat":
             st.success(f"You spent ${total:.2f} this month!")
 
         elif user_input == "List my expenses":
-            st.write(user_expenses)
+            st.dataframe(user_expenses)
 
         elif user_input =="How many transactions did I make?":
             count = len(user_expenses)
@@ -261,6 +276,7 @@ elif st.session_state["page"] == "AI_Chat":
                 if e["category"] not in categories:
                     categories.append(e["category"])
             st.success(f"You spent in {len(categories)} categories this month!")
+
         elif user_input =="How much did I spend on food?":
             food_total = 0
             for e in user_expenses:
@@ -271,8 +287,8 @@ elif st.session_state["page"] == "AI_Chat":
             st.warning("Try a supported question")
 
 ##Admin Page
-elif st.session_state["page"] == "admin".lower():
-    if st.session_state["user"]["role"].lower() != "admin".lower():
+elif st.session_state["page"] == "admin":
+    if not st.session_state["user"] or st.session_state["user"]["role"].lower() != "admin":
         st.error("This is only accessible to admins")
         st.stop()
 
@@ -303,6 +319,32 @@ elif st.session_state["page"] == "admin".lower():
                     st.session_state["edit_expense"] = e
                     st.session_state["page"] = "edit_expense"
                     st.rerun()
+
+##Editing expenses section
+elif st.session_state["page"] == "edit_expense":
+    st.title("Edit Expense")
+
+    e = st.session_state.get("edit_expense")
+
+    amount = st.number_input("Amount", value=e["amount"])
+    category = st.selectbox("Category", options = ["Food", "Transportation", "Bills", "Entertainment", "Other"])
+    note = st.text_area("Note (optional)")
+
+    if st.button("Save Changes"):
+        for expense in expenses:
+            if expense["id"] == e["id"]:
+                expense["amount"] = amount
+                expense["category"] = category
+                expense["note"] = note
+
+        with open(expenses_path, "w") as f:
+            json.dump(expenses, f)
+
+        st.success("Expense updated")
+        st.session_state["page"] = "admin"
+        st.rerun()
+
+
 
 
 
