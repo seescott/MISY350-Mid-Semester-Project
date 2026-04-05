@@ -10,8 +10,8 @@ st.set_page_config("AI Expense Tracker", layout="wide", page_icon="💰", initia
 users_path = Path("users.json")
 expenses_path = Path("expenses.json")
 
-json_path_users = Path("users.json")
-json_path_expenses = Path("expenses.json")
+def get_expenses(email):
+    return [e for e in expenses if e["email"] == email]
 
 if users_path.exists():
     try: 
@@ -46,20 +46,33 @@ if "page" not in st.session_state:
 if "user" not in st.session_state:
     st.session_state.user = None
 
+def valid_email(email):
+    return "@" in email and "." in email
+
+def valid_password(password):
+    return len(password) >= 5
+
+##Login guard reccomended by AI checker
+login_guard = ["dashboard", "add_expense", "AI_Chat", "admin", "edit_expense"]
+if st.session_state["page"] in login_guard and not st.session_state["user"]:
+        st.warning("Please log in first")
+        st.session_state["page"] = "login"
+        st.rerun()
+
 ##Sidebar panel
 with st.sidebar:
     if st.session_state["user"]:
         st.write(f"Logged in as: {st.session_state['user']['email']}")
 
-        if st.button ("Dashboard", key = "dashboard"):
+        if st.button ("Dashboard"):
             st.session_state["page"] = "dashboard"
             st.rerun()
 
-        if st.button("Add Expense", key = "add_expense"):
+        if st.button("Add Expense"):
             st.session_state["page"] = "add_expense"
             st.rerun()
         
-        if st.button("AI Chat", key = "ai_chat"):
+        if st.button("AI Chat"):
             st.session_state["page"] = "AI_Chat"
             st.rerun()
 
@@ -68,7 +81,7 @@ with st.sidebar:
                 st.session_state["page"] = "admin"
                 st.rerun()
 
-        if st.button("Logout", key="logout"):
+        if st.button("Logout"):
             st.session_state["user"] = None
             st.session_state["page"] = "login"
             st.rerun()
@@ -79,10 +92,10 @@ if st.session_state["page"] == "login":
 
     st.subheader("Login")
     with st.container(border=True):
-        email = st.text_input("Email", key = "email")
-        password = st.text_input("Password", type="password", key = "password")
-    
-    if st.button("Login",type="primary", key = "login_button"):
+        email = st.text_input("Email", key="login_email")
+        password = st.text_input("Password", type="password", key="login_password")
+
+    if st.button("Login",type="primary"):
          with st.spinner("Logging in..."):
             found_user = None
             for user in users:
@@ -101,19 +114,23 @@ if st.session_state["page"] == "login":
     ##Creating a new account
     st.subheader("Create new account")
     with st.container(border=True):
-        new_name = st.text_input("Full Name", key= "full_name")
-        new_email = st.text_input("Email", key= "email_register")
-        new_password = st.text_input("Password", type="password", key= "password_creation")
-        new_role = st.radio("Role", options=["admin", "user"], key = "role_select", horizontal=True)
+        new_name = st.text_input("Full Name", key = "register_name")
+        new_email = st.text_input("Email", key = "register_email")
+        new_password = st.text_input("Password", type="password", key = "register_password")
+        new_role = st.radio("Role", options=["admin", "user"], horizontal=True)
 
         if st.button("Create Account", key= "register_btn"):
             if new_name=="" or new_email=="" or new_password=="":
                 st.error("Please fill in all fields")
+            elif not valid_email(new_email):
+                st.error("Enter a valid email")
             elif any(u["email"].lower() == new_email.lower() for u in users):
                 st.error("Email already exists")
+            elif not valid_password(new_password):
+                st.error("Password must be at least 5 characters")
+
             else:
                 with st.spinner("Creating account..."):
-                    time.sleep(2) 
                     users.append({
                         "full_name": new_name,
                         "email": new_email,
@@ -121,30 +138,20 @@ if st.session_state["page"] == "login":
                         "role": new_role.lower()
                     })
                     
-                    with open(json_path_users, "w") as f:
+                    with open(users_path, "w") as f:
                         json.dump(users,f)
 
                 st.success("Account created!")
                 st.rerun()
 
-    st.write("---")
-
-##Login guard reccomended by AI checker
-login_guard = ["dashboard", "add_expense", "AI_Chat", "admin", "edit_expense"]
-if st.session_state["page"] in login_guard and not st.session_state["user"]:
-        st.warning("Please log in first")
-        st.session_state["page"] = "login"
-        st.rerun()
 
 ##Dashboard Page    
 elif st.session_state["page"] == "dashboard":
     st.title("💵 Expense Dashboard 💵")
+    st.write("---")
 
     user_email = st.session_state["user"]["email"]
-    user_expenses = []
-    for e in expenses:
-        if e["email"] == user_email:
-            user_expenses.append(e)
+    user_expenses = get_expenses(user_email)
 
     if len(user_expenses) == 0:
         st.info("No expenses found")
@@ -210,7 +217,6 @@ elif st.session_state["page"] == "dashboard":
                 st.write(f"Highest Expense: ${highest['amount']:.2f} {highest['category']}")
                 st.write(f"Lowest Expense: ${lowest['amount']:.2f} {lowest['category']}")
 
-                st.divider()
         ##Also test this once I add the adding expenses function
 
     ##All Expenses
@@ -235,7 +241,6 @@ elif st.session_state["page"] == "add_expense":
             st.error("Amount must be greater than 0")
         else:
             with st.spinner("Adding expense..."):
-                time.sleep(2)
 
                 expenses.append({
                     "id": str(uuid.uuid4())[:6],
@@ -244,7 +249,7 @@ elif st.session_state["page"] == "add_expense":
                     "category": category,
                     "note": note,})
                 
-                with open(json_path_expenses, "w") as f:
+                with open(expenses_path, "w") as f:
                     json.dump(expenses, f)
             st.success("Expense added!")
             st.rerun()
@@ -310,7 +315,7 @@ elif st.session_state["page"] == "admin":
 
                 if col4.button("Delete", key=f"delete_{e['id']}"):
                     expenses.remove(e)
-                    with open(json_path_expenses, "w") as f:
+                    with open(expenses_path, "w") as f:
                         json.dump(expenses, f)
                     st.success("Expense deleted")
                     st.rerun()
