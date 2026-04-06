@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 import uuid
+import time
 
 
 st.set_page_config("AI Expense Tracker", layout="wide", page_icon="💰", initial_sidebar_state="expanded") ## come back and add icon
@@ -14,22 +15,21 @@ def get_expenses(email):
     return [e for e in expenses if e["email"] == email]
 
 if users_path.exists():
-    try: 
+    try:
         with open(users_path, "r") as f:
             users = json.load(f)
     except:
         users = []
 else:
-    users = [
-        {
+    users = [{
         "email": "useremail@gmail.com",
         "full_name": "John Doe",
         "password": "12345",
         "role": "admin",
-    }
-    ]
+    }]
     with open(users_path, "w") as f:
         json.dump(users, f)
+
 
 if expenses_path.exists():
     try:
@@ -46,8 +46,11 @@ if "page" not in st.session_state:
 if "user" not in st.session_state:
     st.session_state.user = None
 
+if "edit_expense" not in st.session_state:
+    st.session_state.edit_expense = None
+
 def valid_email(email):
-    return "@" in email and "." in email
+    return "@" in email and "." in email and len(email) >= 5
 
 def valid_password(password):
     return len(password) >= 5
@@ -71,20 +74,23 @@ with st.sidebar:
         if st.button("Add Expense"):
             st.session_state["page"] = "add_expense"
             st.rerun()
-        
+
         if st.button("AI Chat"):
             st.session_state["page"] = "AI_Chat"
             st.rerun()
+
 
         if st.session_state["user"]["role"].lower() == "admin":
             if st.button("Admin Features"):
                 st.session_state["page"] = "admin"
                 st.rerun()
 
+
         if st.button("Logout"):
             st.session_state["user"] = None
             st.session_state["page"] = "login"
             st.rerun()
+
 
 ##Logging in 
 if st.session_state["page"] == "login":
@@ -97,6 +103,7 @@ if st.session_state["page"] == "login":
 
     if st.button("Login",type="primary"):
          with st.spinner("Logging in..."):
+            time.sleep(2)
             found_user = None
             for user in users:
                 if user["email"].lower() == email.lower() and user["password"] == password:
@@ -131,6 +138,7 @@ if st.session_state["page"] == "login":
 
             else:
                 with st.spinner("Creating account..."):
+                    time.sleep(2)
                     users.append({
                         "full_name": new_name,
                         "email": new_email,
@@ -150,7 +158,7 @@ elif st.session_state["page"] == "dashboard":
     st.title("💵 Expense Dashboard 💵")
     st.write("---")
 
-    user_email = st.session_state["user"]["email"]
+    user_email = st.session_state.user["email"]
     user_expenses = get_expenses(user_email)
 
     if len(user_expenses) == 0:
@@ -171,11 +179,12 @@ elif st.session_state["page"] == "dashboard":
         else:
             avg = 0
         
-        col1, col2, col3 = st.columns(3)
-
-        col1.metric("Total Spent", f"${total_spent:.2f}")
-        col2.metric("Total Transactions", total_transactions)
-        col3.metric("Average Transaction", f"${avg:.2f}")
+        with st.container(border=True):
+            st.subheader("Summary 📋")
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Total Spent", f"${total_spent:.2f}")
+            col2.metric("Total Transactions", total_transactions)
+            col3.metric("Average Transaction", f"${avg:.2f}")
 
         st.divider()
 
@@ -197,13 +206,16 @@ elif st.session_state["page"] == "dashboard":
 
         with col1:
             with st.container(border=True):
-                st.subheader("Expenses by Category")
-                st.bar_chart(category_amounts)
+                st.subheader("Expenses by Category 📊")
+                if category_amounts:
+                    st.bar_chart(category_amounts)
+                else: 
+                    st.info("No expenses yet")
 
     ##Highest and lowest expenses
         with col2:
             with st.container(border=True):
-                st.subheader("Highest and Lowest Expenses")
+                st.subheader("📈 Highest and Lowest Expenses 📉")
                 
                 highest = user_expenses[0]
                 lowest = user_expenses[0]
@@ -218,12 +230,12 @@ elif st.session_state["page"] == "dashboard":
                 st.write(f"Lowest Expense: ${lowest['amount']:.2f} {lowest['category']}")
 
         ##Also test this once I add the adding expenses function
-
+        st.write("---")
     ##All Expenses
-        st.subheader("All Expenses")
+        st.subheader("All Expenses 🧾")
         for e in user_expenses:
             with st.container(border=True):
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3 = st.columns([2,1,3])
                 col1.write(f"Category: {e['category']}")
                 col2.write(f"Amount: ${e['amount']:.2f}")
                 col3.write(f"Note: {e['note']}")
@@ -241,6 +253,7 @@ elif st.session_state["page"] == "add_expense":
             st.error("Amount must be greater than 0")
         else:
             with st.spinner("Adding expense..."):
+                time.sleep(2)
 
                 expenses.append({
                     "id": str(uuid.uuid4())[:6],
@@ -257,11 +270,11 @@ elif st.session_state["page"] == "add_expense":
 
 ##AI Chat Page
 elif st.session_state["page"] == "AI_Chat":
-    st.title("AI Assistant")
+    st.title("AI Assistant 💻")
 
     user_input = st.text_input("Ask a question")
     if st.button("Ask"):
-        user_email = st.session_state["user"]["email"]
+        user_email = st.session_state.user["email"]
         user_expenses = [e for e in expenses if e["email"] == user_email]
 
         if user_input =="How much did I spend this month?":
@@ -297,7 +310,7 @@ elif st.session_state["page"] == "admin":
         st.error("This is only accessible to admins")
         st.stop()
 
-    st.title("Admin Dashboard")
+    st.title("Admin Dashboard 👩‍🏫")
 
     user_emails = [u["email"] for u in users]
     selected_user = st.selectbox("Select User", user_emails)
@@ -328,8 +341,14 @@ elif st.session_state["page"] == "admin":
 ##Editing expenses section
 elif st.session_state["page"] == "edit_expense":
     st.title("Edit Expense")
+    if not st.session_state["user"] or st.session_state["user"]["role"].lower() != "admin":
+        st.error("Admins only")
+        st.stop()
 
-    e = st.session_state.get("edit_expense")
+    e = st.session_state.edit_expense
+    if e is None:
+        st.error("No expense selected")
+        st.session_state["page"] = "admin"
 
     amount = st.number_input("Amount", value=e["amount"])
     category = st.selectbox("Category", options = ["Food", "Transportation", "Bills", "Entertainment", "Other"])
