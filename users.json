@@ -1,1 +1,14 @@
-[{"email": "seescott@udel.edu", "password": "1", "role": "admin"}, {"full_name": "jane doe", "email": "jane@gmail.com", "password": "12", "role": "admin"}, {"full_name": "james", "email": "james@udel.edu", "password": "2", "role": "user"}, {"full_name": "jane do", "email": "do@gmail.com", "password": "5", "role": "user"}]
+[
+    {
+        "full_name": "jane",
+        "email": "jdoe123@gmail.com",
+        "password": "98765",
+        "role": "user"
+    },
+    {
+        "full_name": "Sofia",
+        "email": "s.eliz2004@gmail.com",
+        "password": "12345",
+        "role": "admin"
+    }
+]
